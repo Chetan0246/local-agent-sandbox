@@ -1,0 +1,151 @@
+{
+  "timestamp": "2026-09-30T17:07:11.605445+00:00",
+  "model": "models/gemma-4-E4B-it-qat-UD-Q4_K_XL.gguf",
+  "score": "2/3 (67%)",
+  "passed": 2,
+  "total": 3,
+  "scenarios": [
+    {
+      "name": "Scenario 1: Port Collision & Rogue Process",
+      "success": true,
+      "duration_seconds": 60.53,
+      "turns_used": 6,
+      "log": [
+        {
+          "turn": 1,
+          "type": "action",
+          "cmd": "lsof -i :80",
+          "output": "COMMAND PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME\npython3 892 root    3u  IPv4   8470      0t0  TCP *:http (LISTEN)"
+        },
+        {
+          "turn": 2,
+          "type": "action",
+          "cmd": "kill -9 892",
+          "output": "[Command completed with no output]"
+        },
+        {
+          "turn": 3,
+          "type": "action",
+          "cmd": "systemctl start nginx",
+          "output": "[Command completed with no output]"
+        },
+        {
+          "turn": 4,
+          "type": "action",
+          "cmd": "systemctl status nginx",
+          "output": "\u25cf nginx.service - A high performance web server and a reverse proxy server\n     Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; preset: enabled)\n     Active: active (running) since Wed 2026-09-30 17:01:57 UTC; 7s ago\n       Docs: man:nginx(8)\n    Process: 1054 ExecStartPre=/usr/sbin/nginx -t -q -g daemon on; master_process on; (code=exited, status=0/SUCCESS)\n    Process: 1056 ExecStart=/usr/sbin/nginx -g daemon on; master_process on; (code=exited, status=0/SUCCESS)\n   Main PID: 1057 (nginx)\n      Tasks: 3 (limit: 2315)\n     Memory: 2.4M (peak: 2.5M)\n        CPU: 7ms\n     CGroup: /system.slice/nginx.service\n             \u251c\u25001057 \"nginx: master process /usr/sbin/nginx -g daemon on; master_process on;\"\n             \u251c\u25001058 \"nginx: worker process\"\n             \u2514\u25001059 \"nginx: worker process\"\n\nSep 30 17:01:57 ubuntu systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...\nSep 30 17:01:57 ubuntu systemd[1]: Started nginx.service - A high performance web server and a reverse proxy server."
+        },
+        {
+          "turn": 5,
+          "type": "action",
+          "cmd": "ss -tulnp | grep :80",
+          "output": "tcp   LISTEN 0      511           0.0.0.0:80        0.0.0.0:*    users:((\"nginx\",pid=1059,fd=5),(\"nginx\",pid=1058,fd=5),(\"nginx\",pid=1057,fd=5))\ntcp   LISTEN 0      511              [::]:80           [::]:*    users:((\"nginx\",pid=1059,fd=6),(\"nginx\",pid=1058,fd=6),(\"nginx\",pid=1057,fd=6))"
+        },
+        {
+          "turn": 6,
+          "type": "thought",
+          "text": "STATUS: RECOVERY_COMPLETE"
+        }
+      ]
+    },
+    {
+      "name": "Scenario 2: Permission Lockout (HTTP 403 Forbidden)",
+      "success": false,
+      "duration_seconds": 196.21,
+      "turns_used": 10,
+      "log": [
+        {
+          "turn": 1,
+          "type": "action",
+          "cmd": "sudo tail -n 50 /var/log/nginx/error.log",
+          "output": "2026/09/30 16:29:57 [notice] 1741#1741: using inherited sockets from \"5;6;\""
+        },
+        {
+          "turn": 2,
+          "type": "action",
+          "cmd": "ls -ld /var/www/html",
+          "output": "drwxr-xr-x 2 root root 4096 Sep 30 16:29 /var/www/html"
+        },
+        {
+          "turn": 3,
+          "type": "action",
+          "cmd": "ls -la /var/www/html",
+          "output": "total 12\ndrwxr-xr-x 2 root root 4096 Sep 30 16:29 .\ndrwxr-xr-x 3 root root 4096 Sep 30 16:29 ..\n---------- 1 root root  615 Sep 30 16:29 index.nginx-debian.html"
+        },
+        {
+          "turn": 4,
+          "type": "action",
+          "cmd": "sudo chown -R www-data:www-data /var/www/html",
+          "output": "[Command completed with no output]"
+        },
+        {
+          "turn": 5,
+          "type": "action",
+          "cmd": "ls -la /var/www/html",
+          "output": "total 12\ndrwxr-xr-x 2 www-data www-data 4096 Sep 30 16:29 .\ndrwxr-xr-x 3 root     root     4096 Sep 30 16:29 ..\n---------- 1 www-data www-data  615 Sep 30 16:29 index.nginx-debian.html"
+        },
+        {
+          "turn": 6,
+          "type": "action",
+          "cmd": "curl -I http://localhost:80",
+          "output": "% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\n  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\n  0   162    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\nHTTP/1.1 403 Forbidden\nServer: nginx/1.24.0 (Ubuntu)\nDate: Wed, 30 Sep 2026 17:03:40 GMT\nContent-Type: text/html\nContent-Length: 162\nConnection: keep-alive"
+        },
+        {
+          "turn": 7,
+          "type": "action",
+          "cmd": "cat /etc/nginx/sites-enabled/default",
+          "output": "}\n\n\t# pass PHP scripts to FastCGI server\n\t#\n\t#location ~ \\.php$ {\n\t#\tinclude snippets/fastcgi-php.conf;\n\t#\n\t#\t# With php-fpm (or other unix sockets):\n\t#\tfastcgi_pass unix:/run/php/php7.4-fpm.sock;\n\t#\t# With php-cgi (or other tcp sockets):\n\t#\tfastcgi_pass 127.0.0.1:9000;\n\t#}\n\n\t# deny access to .htaccess files, if Apache's document root\n\t# concurs with nginx's one\n\t#\n\t#location ~ /\\.ht {\n\t#\tdeny all;\n\t#}\n}\n\n\n# Virtual Host configuration for example.com\n#\n# You can move that to a different file under sites-available/ and symlink that\n# to sites-enabled/ to enable it.\n#\n#server {\n#\tlisten 80;\n#\tlisten [::]:80;\n#\n#\tserver_name example.com;\n#\n#\troot /var/www/example.com;\n#\tindex index.html;\n#\n#\tlocation / {\n#\t\ttry_files $uri $uri/ =404;\n#\t}\n#}"
+        },
+        {
+          "turn": 8,
+          "type": "action",
+          "cmd": "cat /etc/nginx/sites-available/default",
+          "output": "}\n\n\t# pass PHP scripts to FastCGI server\n\t#\n\t#location ~ \\.php$ {\n\t#\tinclude snippets/fastcgi-php.conf;\n\t#\n\t#\t# With php-fpm (or other unix sockets):\n\t#\tfastcgi_pass unix:/run/php/php7.4-fpm.sock;\n\t#\t# With php-cgi (or other tcp sockets):\n\t#\tfastcgi_pass 127.0.0.1:9000;\n\t#}\n\n\t# deny access to .htaccess files, if Apache's document root\n\t# concurs with nginx's one\n\t#\n\t#location ~ /\\.ht {\n\t#\tdeny all;\n\t#}\n}\n\n\n# Virtual Host configuration for example.com\n#\n# You can move that to a different file under sites-available/ and symlink that\n# to sites-enabled/ to enable it.\n#\n#server {\n#\tlisten 80;\n#\tlisten [::]:80;\n#\n#\tserver_name example.com;\n#\n#\troot /var/www/example.com;\n#\tindex index.html;\n#\n#\tlocation / {\n#\t\ttry_files $uri $uri/ =404;\n#\t}\n#}"
+        },
+        {
+          "turn": 9,
+          "type": "action",
+          "cmd": "sudo sed -i '/Virtual Host configuration for example.com/,/}/c\\server {\\n\\tlisten 80;\\n\\tlisten [::]:80;\\n\\tserver_name localhost;\\n\\troot /var/www/html;\\n\\tindex index.html index.htm;\\n\\n\\tlocation / {\\n\\t\\try_files \\$uri \\$uri/ =404;\\n\\t}\\n}' /etc/nginx/sites-available/default",
+          "output": "[Command completed with no output]"
+        },
+        {
+          "turn": 10,
+          "type": "action",
+          "cmd": "sudo nginx -t",
+          "output": "nginx: the configuration file /etc/nginx/nginx.conf syntax is ok\nnginx: configuration file /etc/nginx/nginx.conf test is successful"
+        }
+      ]
+    },
+    {
+      "name": "Scenario 3: Corrupted Configuration Syntax",
+      "success": true,
+      "duration_seconds": 76.44,
+      "turns_used": 4,
+      "log": [
+        {
+          "turn": 1,
+          "type": "action",
+          "cmd": "nginx -t",
+          "output": "nginx: the configuration file /etc/nginx/nginx.conf syntax is ok\nnginx: configuration file /etc/nginx/nginx.conf test is successful"
+        },
+        {
+          "turn": 2,
+          "type": "action",
+          "cmd": "cat /etc/nginx/sites-available/default",
+          "output": "}\n\n\t# pass PHP scripts to FastCGI server\n\t#\n\t#location ~ \\.php$ {\n\t#\tinclude snippets/fastcgi-php.conf;\n\t#\n\t#\t# With php-fpm (or other unix sockets):\n\t#\tfastcgi_pass unix:/run/php/php7.4-fpm.sock;\n\t#\t# With php-cgi (or other tcp sockets):\n\t#\tfastcgi_pass 127.0.0.1:9000;\n\t#}\n\n\t# deny access to .htaccess files, if Apache's document root\n\t# concurs with nginx's one\n\t#\n\t#location ~ /\\.ht {\n\t#\tdeny all;\n\t#}\n}\n\n\n# Virtual Host configuration for example.com\n#\n# You can move that to a different file under sites-available/ and symlink that\n# to sites-enabled/ to enable it.\n#\n#server {\n#\tlisten 80;\n#\tlisten [::]:80;\n#\n#\tserver_name example.com;\n#\n#\troot /var/www/example.com;\n#\tindex index.html;\n#\n#\tlocation / {\n#\t\ttry_files $uri $uri/ =404;\n#\t}\n#}"
+        },
+        {
+          "turn": 3,
+          "type": "action",
+          "cmd": "systemctl status nginx",
+          "output": "\u25cf nginx.service - A high performance web server and a reverse proxy server\n     Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; preset: enabled)\n     Active: active (running) since Wed 2026-09-30 17:05:51 UTC; 51s ago\n       Docs: man:nginx(8)\n    Process: 730 ExecStartPre=/usr/sbin/nginx -t -q -g daemon on; master_process on; (code=exited, status=0/SUCCESS)\n    Process: 735 ExecStart=/usr/sbin/nginx -g daemon on; master_process on; (code=exited, status=0/SUCCESS)\n   Main PID: 739 (nginx)\n      Tasks: 3 (limit: 2315)\n     Memory: 3.7M (peak: 3.9M)\n        CPU: 11ms\n     CGroup: /system.slice/nginx.service\n             \u251c\u2500739 \"nginx: master process /usr/sbin/nginx -g daemon on; master_process on;\"\n             \u251c\u2500740 \"nginx: worker process\"\n             \u2514\u2500741 \"nginx: worker process\"\n\nSep 30 17:05:51 ubuntu systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...\nSep 30 17:05:51 ubuntu systemd[1]: Started nginx.service - A high performance web server and a reverse proxy server."
+        },
+        {
+          "turn": 4,
+          "type": "thought",
+          "text": "STATUS: RECOVERY_COMPLETE"
+        }
+      ]
+    }
+  ]
+}

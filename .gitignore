@@ -1,0 +1,16 @@
+# Ignore large VM disk images and ISOs
+*.qcow2
+*.img
+*.iso
+
+# Ignore SSH keys
+vm_key
+vm_key.pub
+id_rsa*
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+env/

@@ -1,0 +1,8 @@
+#cloud-config
+users:
+  - name: ubuntu
+    gecos: Ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKxeMZ6oTqQx6uUZ0cdGV6C6YzWyBsVE89qAl5YpdfuP agent-sandbox
